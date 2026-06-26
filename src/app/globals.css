@@ -1,26 +1,146 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: 240 10% 4%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 6%;
+  --card-border: 240 6% 12%;
+  --card-foreground: 0 0% 98%;
+  
+  --primary: 161 94% 30%; /* Emerald Teal */
+  --primary-hover: 161 94% 25%;
+  --primary-foreground: 0 0% 100%;
+  
+  --secondary: 240 5% 15%;
+  --secondary-foreground: 240 5% 90%;
+  
+  --muted: 240 5% 12%;
+  --muted-foreground: 240 5% 65%;
+  
+  --success: 142 71% 45%;
+  --success-bg: 142 72% 8%;
+  --success-border: 142 72% 16%;
+  
+  --warning: 38 92% 50%;
+  --warning-bg: 38 92% 8%;
+  --warning-border: 38 92% 16%;
+  
+  --danger: 0 84% 60%;
+  --danger-bg: 0 84% 8%;
+  --danger-border: 0 84% 16%;
+
+  --info: 217 91% 60%;
+  --info-bg: 217 91% 8%;
+  --info-border: 217 91% 16%;
+  
+  --border: 240 6% 12%;
+  --radius: 12px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-border: hsl(var(--card-border));
+  --color-card-foreground: hsl(var(--card-foreground));
+  
+  --color-primary: hsl(var(--primary));
+  --color-primary-hover: hsl(var(--primary-hover));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  
+  --color-success: hsl(var(--success));
+  --color-success-bg: hsl(var(--success-bg));
+  --color-success-border: hsl(var(--success-border));
+  
+  --color-warning: hsl(var(--warning));
+  --color-warning-bg: hsl(var(--warning-bg));
+  --color-warning-border: hsl(var(--warning-border));
+  
+  --color-danger: hsl(var(--danger));
+  --color-danger-bg: hsl(var(--danger-bg));
+  --color-danger-border: hsl(var(--danger-border));
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-info: hsl(var(--info));
+  --color-info-bg: hsl(var(--info-bg));
+  --color-info-border: hsl(var(--info-border));
+  
+  --color-border: hsl(var(--border));
+  --radius-xl: var(--radius);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
+
+/* Custom premium styles */
+.glass-card {
+  background: rgba(18, 18, 22, 0.45);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-card-hover {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(16, 185, 129, 0.2);
+  box-shadow: 0 12px 24px -10px rgba(16, 185, 129, 0.15);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #ffffff 30%, #a3a3a3 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-primary {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--secondary));
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* CSS Print Styles for Pagaré */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-area {
+    display: block !important;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
 }
