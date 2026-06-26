@@ -16,7 +16,8 @@ import {
   CheckCircle2, 
   AlertCircle,
   Eye,
-  ArrowRight
+  ArrowRight,
+  Pencil
 } from 'lucide-react'
 
 interface Client {
@@ -41,6 +42,7 @@ export default function ClientsPage() {
   
   // Registration modal states
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
@@ -56,6 +58,34 @@ export default function ClientsPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [signedUrls, setSignedUrls] = useState<{ [key: string]: string }>({})
   const [loadingDocs, setLoadingDocs] = useState(false)
+
+  const openRegisterModal = () => {
+    setEditingClient(null)
+    setFirstName('')
+    setLastName('')
+    setPhone('')
+    setEmail('')
+    setAddress('')
+    setIneFront(null)
+    setIneBack(null)
+    setAddressProof(null)
+    setModalError('')
+    setIsModalOpen(true)
+  }
+
+  const openEditModal = (client: Client) => {
+    setEditingClient(client)
+    setFirstName(client.first_name)
+    setLastName(client.last_name)
+    setPhone(client.phone)
+    setEmail(client.email || '')
+    setAddress(client.address)
+    setIneFront(null)
+    setIneBack(null)
+    setAddressProof(null)
+    setModalError('')
+    setIsModalOpen(true)
+  }
 
   const supabase = createClient()
 
@@ -133,28 +163,47 @@ export default function ClientsPage() {
     setModalError('')
 
     try {
-      // 1. Generate unique QR Code identifier C-XXXXXX (sparse alphanumeric for fast scanning)
-      const uniqueQR = 'C-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+      let clientId: string
 
-      // 2. Insert Client record
-      const { data: newClient, error: insertError } = await supabase
-        .from('clients')
-        .insert({
-          tenant_id: tenantId,
-          first_name: firstName,
-          last_name: lastName,
-          phone,
-          email: email || null,
-          address,
-          qr_code_identifier: uniqueQR
-        })
-        .select()
-        .single()
+      if (editingClient) {
+        // Update client record
+        const { error: updateError } = await supabase
+          .from('clients')
+          .update({
+            first_name: firstName,
+            last_name: lastName,
+            phone,
+            email: email || null,
+            address
+          })
+          .eq('id', editingClient.id)
 
-      if (insertError) throw insertError
+        if (updateError) throw updateError
+        clientId = editingClient.id
+      } else {
+        // 1. Generate unique QR Code identifier C-XXXXXX (sparse alphanumeric for fast scanning)
+        const uniqueQR = 'C-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+
+        // 2. Insert Client record
+        const { data: newClient, error: insertError } = await supabase
+          .from('clients')
+          .insert({
+            tenant_id: tenantId,
+            first_name: firstName,
+            last_name: lastName,
+            phone,
+            email: email || null,
+            address,
+            qr_code_identifier: uniqueQR
+          })
+          .select()
+          .single()
+
+        if (insertError) throw insertError
+        clientId = newClient.id
+      }
 
       // 3. Upload files to Storage if present
-      const clientId = newClient.id
       const updates: Partial<Client> = {}
 
       const uploadFile = async (file: File, fileType: string) => {
@@ -199,6 +248,7 @@ export default function ClientsPage() {
       setIneFront(null)
       setIneBack(null)
       setAddressProof(null)
+      setEditingClient(null)
       
       // Refresh list
       fetchClients()
@@ -234,7 +284,7 @@ export default function ClientsPage() {
           </p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={openRegisterModal}
           className="flex items-center justify-center gap-2 py-2.5 px-4 bg-primary hover:bg-primary-hover text-white font-medium rounded-xl shadow-lg hover:shadow-primary/20 transition-all cursor-pointer text-sm shrink-0"
         >
           <Plus className="h-5 w-5" />
@@ -292,13 +342,22 @@ export default function ClientsPage() {
                     </div>
                   </div>
                   
-                  <button 
-                    onClick={() => fetchClientDocuments(client)}
-                    className="p-2 bg-secondary hover:bg-muted text-muted-foreground hover:text-white rounded-xl border border-border transition-colors cursor-pointer"
-                    title="Ver documentación"
-                  >
-                    <Eye className="h-4.5 w-4.5" />
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button 
+                      onClick={() => openEditModal(client)}
+                      className="p-2 bg-secondary hover:bg-muted text-muted-foreground hover:text-white rounded-xl border border-border transition-colors cursor-pointer"
+                      title="Editar cliente"
+                    >
+                      <Pencil className="h-4.5 w-4.5" />
+                    </button>
+                    <button 
+                      onClick={() => fetchClientDocuments(client)}
+                      className="p-2 bg-secondary hover:bg-muted text-muted-foreground hover:text-white rounded-xl border border-border transition-colors cursor-pointer"
+                      title="Ver documentación"
+                    >
+                      <Eye className="h-4.5 w-4.5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Details */}
@@ -337,15 +396,22 @@ export default function ClientsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl p-6 relative my-4 max-h-[90vh] flex flex-col">
             <button 
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => {
+                setIsModalOpen(false)
+                setEditingClient(null)
+              }}
               className="absolute top-4 right-4 p-1.5 bg-secondary hover:bg-muted text-muted-foreground hover:text-white rounded-lg transition-colors cursor-pointer z-10"
             >
               <X className="h-5 w-5" />
             </button>
 
             <div className="shrink-0 mb-4 pr-8">
-              <h3 className="text-xl font-bold text-white">Registrar Nuevo Cliente</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Completa los datos del cliente y sube su papelería legal.</p>
+              <h3 className="text-xl font-bold text-white">
+                {editingClient ? 'Editar Cliente' : 'Registrar Nuevo Cliente'}
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {editingClient ? 'Modifica los datos del cliente o actualiza sus documentos.' : 'Completa los datos del cliente y sube su papelería legal.'}
+              </p>
             </div>
 
             {modalError && (
@@ -499,7 +565,7 @@ export default function ClientsPage() {
                   </span>
                 ) : (
                   <>
-                    Crear Expediente de Cliente
+                    {editingClient ? 'Guardar Cambios' : 'Crear Expediente de Cliente'}
                     <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                   </>
                 )}
