@@ -335,140 +335,144 @@ export default function ClientsPage() {
       {/* REGISTRATION MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl p-6 relative my-8">
+          <div className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl p-6 relative my-4 max-h-[90vh] flex flex-col">
             <button 
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 p-1.5 bg-secondary hover:bg-muted text-muted-foreground hover:text-white rounded-lg transition-colors cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 bg-secondary hover:bg-muted text-muted-foreground hover:text-white rounded-lg transition-colors cursor-pointer z-10"
             >
               <X className="h-5 w-5" />
             </button>
 
-            <h3 className="text-xl font-bold text-white mb-2">Registrar Nuevo Cliente</h3>
-            <p className="text-sm text-muted-foreground mb-6">Completa los datos del cliente y sube su papelería legal.</p>
+            <div className="shrink-0 mb-4 pr-8">
+              <h3 className="text-xl font-bold text-white">Registrar Nuevo Cliente</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Completa los datos del cliente y sube su papelería legal.</p>
+            </div>
 
             {modalError && (
-              <div className="mb-4 p-4 bg-danger-bg border border-danger-border text-danger text-sm rounded-xl flex gap-2">
-                <AlertCircle className="h-5 w-5 shrink-0" />
+              <div className="mb-4 p-3 bg-danger-bg border border-danger-border text-danger text-xs rounded-xl flex gap-2 shrink-0">
+                <AlertCircle className="h-4.5 w-4.5 shrink-0" />
                 <span>{modalError}</span>
               </div>
             )}
 
-            <form onSubmit={handleRegisterClient} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Nombre(s)</label>
+            <form onSubmit={handleRegisterClient} className="space-y-3.5 overflow-y-auto flex-1 pr-1 custom-scrollbar">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Nombre(s)</label>
                   <input
                     type="text"
                     required
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="block w-full px-3 py-2 bg-muted border border-border rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm"
+                    className="block w-full px-3 py-1.5 bg-muted border border-border rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-xs"
                     placeholder="Ej: Juan"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Apellidos</label>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Apellidos</label>
                   <input
                     type="text"
                     required
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="block w-full px-3 py-2 bg-muted border border-border rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm"
+                    className="block w-full px-3 py-1.5 bg-muted border border-border rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-xs"
                     placeholder="Ej: Pérez"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Teléfono (Celular)</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Teléfono (Celular)</label>
                   <input
                     type="tel"
                     required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="block w-full px-3 py-2 bg-muted border border-border rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm"
+                    className="block w-full px-3 py-1.5 bg-muted border border-border rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-xs"
                     placeholder="Ej: 5512345678"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Email (Opcional)</label>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email (Opcional)</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full px-3 py-2 bg-muted border border-border rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm"
+                    className="block w-full px-3 py-1.5 bg-muted border border-border rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-xs"
                     placeholder="correo@ejemplo.com"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase">Domicilio Completo</label>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Domicilio Completo</label>
                 <textarea
                   required
                   rows={2}
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="block w-full px-3 py-2 bg-muted border border-border rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm"
+                  className="block w-full px-3 py-1.5 bg-muted border border-border rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-xs resize-none"
                   placeholder="Calle, Número, Colonia, Municipio, Código Postal"
                 />
               </div>
 
               {/* Document uploads */}
-              <div className="border-t border-border pt-4 space-y-3.5">
-                <h4 className="text-sm font-semibold text-white">Documentación Legal (Opcional al registrar)</h4>
+              <div className="border-t border-border pt-3 space-y-2.5">
+                <h4 className="text-[10px] font-bold text-white uppercase tracking-wider">Documentación Legal (Opcional)</h4>
                 
-                {/* INE Front */}
-                <div className="flex items-center justify-between gap-4 p-3 bg-secondary rounded-xl border border-border">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-white">Copia INE Frente</p>
-                    <p className="text-[10px] text-muted-foreground truncate">
-                      {ineFront ? ineFront.name : 'Ningún archivo seleccionado'}
-                    </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* INE Front */}
+                  <div className="flex items-center justify-between gap-2 p-2.5 bg-secondary rounded-xl border border-border min-w-0">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold text-white truncate">INE Frente</p>
+                      <p className="text-[9px] text-muted-foreground truncate">
+                        {ineFront ? ineFront.name : 'No seleccionado'}
+                      </p>
+                    </div>
+                    <label className="flex items-center gap-1 px-2.5 py-1 bg-muted hover:bg-border text-[10px] font-semibold text-white rounded-lg border border-border cursor-pointer transition-colors shrink-0">
+                      <Upload className="h-3 w-3" />
+                      Subir
+                      <input 
+                        type="file" 
+                        accept="image/*,application/pdf"
+                        onChange={(e) => setIneFront(e.target.files?.[0] || null)}
+                        className="hidden" 
+                      />
+                    </label>
                   </div>
-                  <label className="flex items-center gap-1.5 px-3 py-1.5 bg-muted hover:bg-border text-xs font-medium text-white rounded-lg border border-border cursor-pointer transition-colors shrink-0">
-                    <Upload className="h-3.5 w-3.5" />
-                    Subir
-                    <input 
-                      type="file" 
-                      accept="image/*,application/pdf"
-                      onChange={(e) => setIneFront(e.target.files?.[0] || null)}
-                      className="hidden" 
-                    />
-                  </label>
-                </div>
 
-                {/* INE Back */}
-                <div className="flex items-center justify-between gap-4 p-3 bg-secondary rounded-xl border border-border">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-white">Copia INE Reverso</p>
-                    <p className="text-[10px] text-muted-foreground truncate">
-                      {ineBack ? ineBack.name : 'Ningún archivo seleccionado'}
-                    </p>
+                  {/* INE Back */}
+                  <div className="flex items-center justify-between gap-2 p-2.5 bg-secondary rounded-xl border border-border min-w-0">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold text-white truncate">INE Reverso</p>
+                      <p className="text-[9px] text-muted-foreground truncate">
+                        {ineBack ? ineBack.name : 'No seleccionado'}
+                      </p>
+                    </div>
+                    <label className="flex items-center gap-1 px-2.5 py-1 bg-muted hover:bg-border text-[10px] font-semibold text-white rounded-lg border border-border cursor-pointer transition-colors shrink-0">
+                      <Upload className="h-3 w-3" />
+                      Subir
+                      <input 
+                        type="file" 
+                        accept="image/*,application/pdf"
+                        onChange={(e) => setIneBack(e.target.files?.[0] || null)}
+                        className="hidden" 
+                      />
+                    </label>
                   </div>
-                  <label className="flex items-center gap-1.5 px-3 py-1.5 bg-muted hover:bg-border text-xs font-medium text-white rounded-lg border border-border cursor-pointer transition-colors shrink-0">
-                    <Upload className="h-3.5 w-3.5" />
-                    Subir
-                    <input 
-                      type="file" 
-                      accept="image/*,application/pdf"
-                      onChange={(e) => setIneBack(e.target.files?.[0] || null)}
-                      className="hidden" 
-                    />
-                  </label>
                 </div>
 
                 {/* Proof of Address */}
-                <div className="flex items-center justify-between gap-4 p-3 bg-secondary rounded-xl border border-border">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-white">Comprobante de Domicilio</p>
-                    <p className="text-[10px] text-muted-foreground truncate">
-                      {addressProof ? addressProof.name : 'Ningún archivo seleccionado'}
+                <div className="flex items-center justify-between gap-2 p-2.5 bg-secondary rounded-xl border border-border min-w-0">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold text-white truncate">Comprobante de Domicilio</p>
+                    <p className="text-[9px] text-muted-foreground truncate">
+                      {addressProof ? addressProof.name : 'No seleccionado'}
                     </p>
                   </div>
-                  <label className="flex items-center gap-1.5 px-3 py-1.5 bg-muted hover:bg-border text-xs font-medium text-white rounded-lg border border-border cursor-pointer transition-colors shrink-0">
-                    <Upload className="h-3.5 w-3.5" />
+                  <label className="flex items-center gap-1 px-2.5 py-1 bg-muted hover:bg-border text-[10px] font-semibold text-white rounded-lg border border-border cursor-pointer transition-colors shrink-0">
+                    <Upload className="h-3 w-3" />
                     Subir
                     <input 
                       type="file" 
@@ -483,20 +487,20 @@ export default function ClientsPage() {
               <button
                 type="submit"
                 disabled={registering}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-primary hover:bg-primary-hover text-white font-medium rounded-xl shadow-lg hover:shadow-primary/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group text-sm mt-6"
+                className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-primary hover:bg-primary-hover text-white font-medium rounded-xl shadow-lg hover:shadow-primary/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group text-xs mt-4 shrink-0"
               >
                 {registering ? (
                   <span className="flex items-center gap-2">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    Subiendo archivos y registrando...
+                    Procesando registro...
                   </span>
                 ) : (
                   <>
                     Crear Expediente de Cliente
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                   </>
                 )}
               </button>
