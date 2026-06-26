@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { 
   FileText, 
@@ -59,6 +59,113 @@ interface Client {
   last_name: string
 }
 
+// -------------------------------------------------------------
+// REUSABLE SEARCHABLE SELECT (COMBOBOX) COMPONENT
+// -------------------------------------------------------------
+interface SearchableSelectProps {
+  label: string
+  placeholder: string
+  options: { id: string; name: string }[]
+  value: string
+  onChange: (value: string) => void
+  disabled?: boolean
+}
+
+function SearchableSelect({ label, placeholder, options, value, onChange, disabled }: SearchableSelectProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const selectedOption = options.find(opt => opt.id === value)
+  
+  useEffect(() => {
+    if (selectedOption) {
+      setSearch(selectedOption.name)
+    } else {
+      setSearch('')
+    }
+  }, [selectedOption, value])
+
+  const filtered = options.filter(opt =>
+    opt.name.toLowerCase().includes(search.toLowerCase())
+  )
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+        if (selectedOption) {
+          setSearch(selectedOption.name)
+        } else {
+          setSearch('')
+        }
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [selectedOption])
+
+  return (
+    <div ref={containerRef} className="space-y-1.5 relative">
+      <label className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
+        <User className="h-3.5 w-3.5 text-muted-foreground/60" />
+        {label}
+      </label>
+      
+      <div className="relative">
+        <input
+          type="text"
+          disabled={disabled}
+          placeholder={placeholder}
+          value={search}
+          onFocus={() => setIsOpen(true)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setIsOpen(true)
+            if (!e.target.value) {
+              onChange('')
+            }
+          }}
+          className="block w-full px-3 py-2 bg-muted border border-border rounded-xl text-white text-sm focus:outline-none focus:border-primary placeholder-muted-foreground transition-all"
+        />
+        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-muted-foreground">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+
+      {isOpen && !disabled && (
+        <div className="absolute z-30 w-full mt-1 bg-card border border-border rounded-xl shadow-2xl max-h-52 overflow-y-auto py-1 glass-card">
+          {filtered.length === 0 ? (
+            <div className="px-3 py-2 text-xs text-muted-foreground text-center">No se encontraron resultados</div>
+          ) : (
+            filtered.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => {
+                  onChange(opt.id)
+                  setSearch(opt.name)
+                  setIsOpen(false)
+                }}
+                className={`w-full text-left px-3 py-2 text-xs hover:bg-muted text-white transition-colors flex items-center justify-between ${value === opt.id ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+              >
+                <span>{opt.name}</span>
+                {value === opt.id && (
+                  <svg className="h-3.5 w-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function LoansPage() {
   const [loans, setLoans] = useState<Loan[]>([])
   const [clients, setClients] = useState<Client[]>([])
@@ -86,17 +193,6 @@ export default function LoansPage() {
 
   // Print Pagaré State
   const [printLoanId, setPrintLoanId] = useState<string | null>(null)
-
-  // Borrower and Aval Modal Filter Search States
-  const [borrowerSearch, setBorrowerSearch] = useState('')
-  const [avalSearch, setAvalSearch] = useState('')
-
-  const filteredBorrowers = clients.filter(c => 
-    `${c.first_name} ${c.last_name}`.toLowerCase().includes(borrowerSearch.toLowerCase())
-  )
-  const filteredAvals = clients.filter(c => 
-    `${c.first_name} ${c.last_name}`.toLowerCase().includes(avalSearch.toLowerCase())
-  )
 
   const supabase = createClient()
 
@@ -216,8 +312,6 @@ export default function LoansPage() {
       setIsModalOpen(false)
       setSelectedClientId('')
       setSelectedAvalId('')
-      setBorrowerSearch('')
-      setAvalSearch('')
       setPrincipal(1000)
       setInterestRate(20)
       setTermWeeks(15)
@@ -460,8 +554,6 @@ export default function LoansPage() {
             <button 
               onClick={() => {
                 setIsModalOpen(false)
-                setBorrowerSearch('')
-                setAvalSearch('')
               }}
               className="absolute top-4 right-4 p-1.5 bg-secondary hover:bg-muted text-muted-foreground hover:text-white rounded-lg transition-colors cursor-pointer"
             >
@@ -479,56 +571,23 @@ export default function LoansPage() {
             )}
 
             <form onSubmit={handleCreateLoan} className="space-y-4">
-              {/* Select Client */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  Cliente (Prestatario)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Filtrar por nombre del cliente..."
-                  value={borrowerSearch}
-                  onChange={(e) => setBorrowerSearch(e.target.value)}
-                  className="block w-full px-3 py-1.5 bg-muted border border-border rounded-xl text-white text-xs focus:outline-none focus:border-primary placeholder-muted-foreground"
-                />
-                <select
-                  required
-                  value={selectedClientId}
-                  onChange={(e) => setSelectedClientId(e.target.value)}
-                  className="block w-full px-3 py-2 bg-muted border border-border rounded-xl text-white focus:outline-none focus:border-primary text-sm"
-                >
-                  <option value="">-- Seleccionar Cliente --</option>
-                  {filteredBorrowers.map(c => (
-                    <option key={c.id} value={c.id}>{c.last_name}, {c.first_name}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Searchable Borrower Select */}
+              <SearchableSelect
+                label="Cliente (Prestatario)"
+                placeholder="Escribe el nombre del cliente a buscar..."
+                options={clients.map(c => ({ id: c.id, name: `${c.last_name}, ${c.first_name}` }))}
+                value={selectedClientId}
+                onChange={setSelectedClientId}
+              />
 
-              {/* Select Aval */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
-                  <User className="h-3 w-3 text-primary" />
-                  Co-deudor / Aval
-                </label>
-                <input
-                  type="text"
-                  placeholder="Filtrar por nombre del aval..."
-                  value={avalSearch}
-                  onChange={(e) => setAvalSearch(e.target.value)}
-                  className="block w-full px-3 py-1.5 bg-muted border border-border rounded-xl text-white text-xs focus:outline-none focus:border-primary placeholder-muted-foreground"
-                />
-                <select
-                  value={selectedAvalId}
-                  onChange={(e) => setSelectedAvalId(e.target.value)}
-                  className="block w-full px-3 py-2 bg-muted border border-border rounded-xl text-white focus:outline-none focus:border-primary text-sm"
-                >
-                  <option value="">-- Sin Aval (No obligatorio) --</option>
-                  {filteredAvals.map(c => (
-                    <option key={c.id} value={c.id}>{c.last_name}, {c.first_name}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Searchable Aval Select */}
+              <SearchableSelect
+                label="Co-deudor / Aval"
+                placeholder="Escribe el nombre del aval a buscar..."
+                options={clients.map(c => ({ id: c.id, name: `${c.last_name}, ${c.first_name}` }))}
+                value={selectedAvalId}
+                onChange={setSelectedAvalId}
+              />
 
               {/* Financial calculations */}
               <div className="border border-border rounded-xl p-4 bg-secondary space-y-4">
