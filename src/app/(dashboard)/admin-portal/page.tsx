@@ -297,18 +297,20 @@ export default function AdminPortalPage() {
       {/* CREATE TENANT MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl p-6 relative my-8">
+          <div className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl p-6 relative my-4 max-h-[90vh] md:max-h-[85vh] flex flex-col">
             <button 
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 p-1.5 bg-secondary hover:bg-muted text-muted-foreground hover:text-white rounded-lg transition-colors cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 bg-secondary hover:bg-muted text-muted-foreground hover:text-white rounded-lg transition-colors cursor-pointer z-10"
             >
               <X className="h-5 w-5" />
             </button>
 
-            <h3 className="text-xl font-bold text-white mb-2">Registrar Prestamista y Propietario</h3>
-            <p className="text-sm text-muted-foreground mb-6">Da de alta una nueva franquicia y crea la cuenta del dueño del negocio en una sola operación.</p>
+            <div className="shrink-0 mb-4 pr-8">
+              <h3 className="text-xl font-bold text-white">Registrar Prestamista y Propietario</h3>
+              <p className="text-sm text-muted-foreground mt-1">Da de alta una nueva franquicia y crea la cuenta del dueño del negocio en una sola operación.</p>
+            </div>
 
-            <form onSubmit={handleCreateTenantWithOwner} className="space-y-4">
+            <form onSubmit={handleCreateTenantWithOwner} className="space-y-4 overflow-y-auto flex-1 pr-1 scrollbar-thin">
               <div className="border-b border-border pb-3 mb-3">
                 <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Datos del Negocio</h4>
               </div>

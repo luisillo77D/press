@@ -13,6 +13,18 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
+function formatLocalDateString(dateStr: string | null | undefined) {
+  if (!dateStr) return ''
+  const parts = dateStr.split('T')[0].split('-')
+  if (parts.length === 3) {
+    const year = parts[0]
+    const month = parseInt(parts[1], 10)
+    const day = parseInt(parts[2], 10)
+    return `${day}/${month}/${year}`
+  }
+  return dateStr
+}
+
 interface MetricCardProps {
   title: string
   value: string
@@ -243,7 +255,7 @@ export default async function DashboardPage() {
                       <p className="font-bold text-white">{clientName}</p>
                       <p className="text-muted-foreground flex items-center gap-1">
                         <Calendar className="h-3 w-3 text-primary" />
-                        Pago #{inst.installment_number} • Vence {new Date(inst.due_date).toLocaleDateString()}
+                        Pago #{inst.installment_number} • Vence {formatLocalDateString(inst.due_date)}
                       </p>
                     </div>
                     <div className="text-right">

@@ -47,6 +47,18 @@ interface Installment {
   status: string
 }
 
+function formatLocalDateString(dateStr: string | null | undefined) {
+  if (!dateStr) return ''
+  const parts = dateStr.split('T')[0].split('-')
+  if (parts.length === 3) {
+    const year = parts[0]
+    const month = parseInt(parts[1], 10)
+    const day = parseInt(parts[2], 10)
+    return `${day}/${month}/${year}`
+  }
+  return dateStr
+}
+
 export default function CollectPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [loadingSearch, setLoadingSearch] = useState(false)
@@ -55,6 +67,7 @@ export default function CollectPage() {
   // Loaded Client & Loan details
   const [client, setClient] = useState<Client | null>(null)
   const [loan, setLoan] = useState<Loan | null>(null)
+  const [clientLoans, setClientLoans] = useState<Loan[]>([])
   const [unpaidInstallments, setUnpaidInstallments] = useState<Installment[]>([])
   
   // Payment Form States
@@ -113,6 +126,40 @@ export default function CollectPage() {
     }
   }
 
+  const fetchInstallmentsForLoan = async (selectedLoan: Loan) => {
+    try {
+      setSearchError('')
+      const { data: instData, error: instError } = await supabase
+        .from('installments')
+        .select('*')
+        .eq('loan_id', selectedLoan.id)
+        .in('status', ['pending', 'partially_paid', 'late'])
+        .order('installment_number', { ascending: true })
+
+      if (instError) throw instError
+      setUnpaidInstallments(instData || [])
+
+      if (instData && instData.length > 0) {
+        const nextInst = instData[0]
+        const remainingPrincipal = nextInst.amount_due - nextInst.amount_paid
+        const totalSuggested = remainingPrincipal + nextInst.fine_amount
+        setAmountToPay(totalSuggested)
+
+        setTimeout(() => {
+          if (paymentInputRef.current) {
+            paymentInputRef.current.focus()
+            paymentInputRef.current.select()
+          }
+        }, 80)
+      } else {
+        setSearchError('El préstamo no tiene cuotas pendientes.')
+      }
+    } catch (err: any) {
+      console.error(err)
+      setSearchError(err.message || 'Error al buscar la información del cobro.')
+    }
+  }
+
   // Handle client search (QR code matches or text query)
   const handleClientSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -122,6 +169,7 @@ export default function CollectPage() {
     setSearchError('')
     setClient(null)
     setLoan(null)
+    setClientLoans([])
     setUnpaidInstallments([])
     setPaymentSuccess(null)
 
@@ -147,56 +195,33 @@ export default function CollectPage() {
         return
       }
 
-      // If multiple name matches, for this ultra-fast collection we select the first one,
-      // but in real use we should show list. Let's pick the first match.
       const selectedClient = clientsData[0]
       setClient(selectedClient)
 
       // 2. Fetch active or defaulted loans for this client
-      const { data: loanData, error: loanError } = await supabase
+      const { data: loansData, error: loansError } = await supabase
         .from('loans')
         .select('*')
         .eq('client_id', selectedClient.id)
         .in('status', ['active', 'defaulted'])
-        .maybeSingle()
 
-      if (loanError) throw loanError
+      if (loansError) throw loansError
 
-      if (!loanData) {
+      if (!loansData || loansData.length === 0) {
         setSearchError(`El cliente ${selectedClient.first_name} no tiene préstamos activos.`)
         return
       }
-      setLoan(loanData)
 
-      // 3. Fetch unpaid installments
-      const { data: instData, error: instError } = await supabase
-        .from('installments')
-        .select('*')
-        .eq('loan_id', loanData.id)
-        .in('status', ['pending', 'partially_paid', 'late'])
-        .order('installment_number', { ascending: true })
+      setClientLoans(loansData)
 
-      if (instError) throw instError
-      setUnpaidInstallments(instData || [])
-
-      // 4. Precalculate amount to pay: First unpaid installment amount + any active fines
-      if (instData && instData.length > 0) {
-        // Overdue + current logic:
-        // We preload the sum of the first installment's remaining due amount + its fine.
-        const nextInst = instData[0]
-        const remainingPrincipal = nextInst.amount_due - nextInst.amount_paid
-        const totalSuggested = remainingPrincipal + nextInst.fine_amount
-        setAmountToPay(totalSuggested)
-
-        // Auto-focus payment input for immediate registration (one-click/one-enter)
-        setTimeout(() => {
-          if (paymentInputRef.current) {
-            paymentInputRef.current.focus()
-            paymentInputRef.current.select()
-          }
-        }, 80)
+      if (loansData.length === 1) {
+        const loanData = loansData[0]
+        setLoan(loanData)
+        await fetchInstallmentsForLoan(loanData)
       } else {
-        setSearchError('El préstamo no tiene cuotas pendientes.')
+        // Multiple loans: UI will show selection list
+        setLoan(null)
+        setUnpaidInstallments([])
       }
 
     } catch (err: any) {
@@ -275,6 +300,7 @@ export default function CollectPage() {
     setSearchError('')
     setClient(null)
     setLoan(null)
+    setClientLoans([])
     setUnpaidInstallments([])
     setPaymentSuccess(null)
 
@@ -295,43 +321,28 @@ export default function CollectPage() {
       const selectedClient = clientsData[0]
       setClient(selectedClient)
 
-      const { data: loanData, error: loanError } = await supabase
+      const { data: loansData, error: loansError } = await supabase
         .from('loans')
         .select('*')
         .eq('client_id', selectedClient.id)
         .in('status', ['active', 'defaulted'])
-        .maybeSingle()
 
-      if (loanError) throw loanError
+      if (loansError) throw loansError
 
-      if (!loanData) {
+      if (!loansData || loansData.length === 0) {
         setSearchError(`El cliente ${selectedClient.first_name} no tiene préstamos activos.`)
         return
       }
-      setLoan(loanData)
 
-      const { data: instData, error: instError } = await supabase
-        .from('installments')
-        .select('*')
-        .eq('loan_id', loanData.id)
-        .in('status', ['pending', 'partially_paid', 'late'])
-        .order('installment_number', { ascending: true })
+      setClientLoans(loansData)
 
-      if (instError) throw instError
-      setUnpaidInstallments(instData || [])
-
-      if (instData && instData.length > 0) {
-        const nextInst = instData[0]
-        const remainingPrincipal = nextInst.amount_due - nextInst.amount_paid
-        const totalSuggested = remainingPrincipal + nextInst.fine_amount
-        setAmountToPay(totalSuggested)
-
-        setTimeout(() => {
-          if (paymentInputRef.current) {
-            paymentInputRef.current.focus()
-            paymentInputRef.current.select()
-          }
-        }, 80)
+      if (loansData.length === 1) {
+        const loanData = loansData[0]
+        setLoan(loanData)
+        await fetchInstallmentsForLoan(loanData)
+      } else {
+        setLoan(null)
+        setUnpaidInstallments([])
       }
     } catch (err: any) {
       console.error(err)
@@ -374,6 +385,7 @@ export default function CollectPage() {
       // Reset State
       setClient(null)
       setLoan(null)
+      setClientLoans([])
       setUnpaidInstallments([])
       setSearchQuery('')
       setNotes('')
@@ -515,6 +527,54 @@ export default function CollectPage() {
         </div>
       )}
 
+      {/* Loan Selection Panel (when client has multiple loans) */}
+      {client && !loan && clientLoans.length > 1 && (
+        <div className="glass-card rounded-2xl border border-border p-6 shadow-xl space-y-6">
+          <div>
+            <span className="text-xs text-primary uppercase font-bold tracking-wider">Múltiples Préstamos Activos</span>
+            <h3 className="text-xl font-bold text-white mt-1">Selecciona el préstamo para {client.first_name} {client.last_name}</h3>
+            <p className="text-xs text-muted-foreground mt-1">Este cliente tiene {clientLoans.length} préstamos activos. Selecciona cuál deseas cobrar:</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {clientLoans.map((l) => (
+              <div 
+                key={l.id} 
+                className="bg-secondary/40 border border-border hover:border-primary/45 rounded-xl p-5 hover:bg-secondary/60 transition-all duration-200 cursor-pointer group flex flex-col justify-between h-full"
+                onClick={() => {
+                  setLoan(l)
+                  fetchInstallmentsForLoan(l)
+                }}
+              >
+                <div>
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="text-[10px] font-mono text-muted-foreground">ID: {l.id.slice(0, 8).toUpperCase()}</span>
+                    <span className={`px-2 py-0.5 rounded-full border text-[8px] font-bold uppercase ${
+                      l.status === 'defaulted' ? 'bg-danger-bg border-danger-border text-danger' : 'bg-info-bg border-info-border text-info'
+                    }`}>
+                      {l.status === 'defaulted' ? 'Atrasado' : 'Activo'}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-1 mb-4">
+                    <p className="text-lg font-black text-white">${Number(l.total_to_pay).toLocaleString()} MXN</p>
+                    <p className="text-[11px] text-muted-foreground">Principal: ${Number(l.principal_amount).toLocaleString()} MXN</p>
+                  </div>
+                </div>
+
+                <div className="border-t border-border/40 pt-3 flex items-center justify-between text-xs mt-auto">
+                  <span className="text-muted-foreground">Inicio: {formatLocalDateString(l.start_date)}</span>
+                  <div className="flex items-center gap-1.5 py-1 px-3 bg-primary hover:bg-primary-hover text-white text-[11px] font-bold rounded-lg transition-colors cursor-pointer">
+                    Cobrar
+                    <ChevronRight className="h-3 w-3" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Main Payment collection panel */}
       {client && loan && nextInstallment && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -570,7 +630,7 @@ export default function CollectPage() {
                 </div>
                 <div className="text-right">
                   <span className="text-xs text-muted-foreground block">Vence</span>
-                  <span className="text-xs font-semibold text-white">{new Date(nextInstallment.due_date).toLocaleDateString()}</span>
+                  <span className="text-xs font-semibold text-white">{formatLocalDateString(nextInstallment.due_date)}</span>
                 </div>
               </div>
 

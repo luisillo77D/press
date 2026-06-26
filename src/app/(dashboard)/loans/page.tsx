@@ -168,6 +168,31 @@ function SearchableSelect({ label, placeholder, options, value, onChange, disabl
   )
 }
 
+function formatLocalDateString(dateStr: string | null | undefined) {
+  if (!dateStr) return ''
+  const parts = dateStr.split('T')[0].split('-')
+  if (parts.length === 3) {
+    const year = parts[0]
+    const month = parseInt(parts[1], 10)
+    const day = parseInt(parts[2], 10)
+    return `${day}/${month}/${year}`
+  }
+  return dateStr
+}
+
+function getFirstPaymentDateString(startDateStr: string | null | undefined) {
+  if (!startDateStr) return ''
+  const parts = startDateStr.split('T')[0].split('-')
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10)
+    const month = parseInt(parts[1], 10) - 1
+    const day = parseInt(parts[2], 10)
+    const localDate = new Date(year, month, day + 7)
+    return `${localDate.getDate()}/${localDate.getMonth() + 1}/${localDate.getFullYear()}`
+  }
+  return startDateStr
+}
+
 export default function LoansPage() {
   const [loans, setLoans] = useState<Loan[]>([])
   const [clients, setClients] = useState<Client[]>([])
@@ -185,7 +210,11 @@ export default function LoansPage() {
   const [interestAmount, setInterestAmount] = useState(200)
   const [totalToPay, setTotalToPay] = useState(1200)
   const [termWeeks, setTermWeeks] = useState(15)
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 7)
+    return d.toISOString().split('T')[0]
+  })
   const [submitting, setSubmitting] = useState(false)
   const [modalError, setModalError] = useState('')
 
@@ -326,6 +355,12 @@ export default function LoansPage() {
     setModalError('')
 
     try {
+      // Since database generates first installment at p_start_date + 7 days,
+      // we shift p_start_date back by 7 days so that the first installment is due EXACTLY on startDate.
+      const dateObj = new Date(startDate + 'T00:00:00')
+      dateObj.setDate(dateObj.getDate() - 7)
+      const rpcStartDate = dateObj.toISOString().split('T')[0]
+
       // Call create_loan_with_installments database function
       const { data: loanId, error } = await supabase.rpc('create_loan_with_installments', {
         p_client_id: selectedClientId,
@@ -335,7 +370,7 @@ export default function LoansPage() {
         p_total_to_pay: totalToPay,
         p_term_weeks: termWeeks,
         p_payment_frequency: 'weekly',
-        p_start_date: startDate
+        p_start_date: rpcStartDate
       })
 
       if (error) throw error
@@ -347,7 +382,9 @@ export default function LoansPage() {
       setPrincipal(1000)
       setInterestRate(20)
       setTermWeeks(15)
-      setStartDate(new Date().toISOString().split('T')[0])
+      const d = new Date()
+      d.setDate(d.getDate() + 7)
+      setStartDate(d.toISOString().split('T')[0])
       
       // Auto open print pagare modal
       setPrintLoanId(loanId)
@@ -563,7 +600,7 @@ export default function LoansPage() {
                             {installments.map((inst) => (
                               <tr key={inst.id} className="hover:bg-muted/5">
                                 <td className="px-4 py-2.5 font-semibold text-white">#{inst.installment_number}</td>
-                                <td className="px-4 py-2.5">{new Date(inst.due_date).toLocaleDateString()}</td>
+                                <td className="px-4 py-2.5">{formatLocalDateString(inst.due_date)}</td>
                                 <td className="px-4 py-2.5 text-right font-bold text-white">${Number(inst.amount_due).toFixed(2)}</td>
                                 <td className="px-4 py-2.5 text-right text-emerald-500">${Number(inst.amount_paid).toFixed(2)}</td>
                                 <td className="px-4 py-2.5 text-right text-danger font-medium">${Number(inst.fine_amount).toFixed(2)}</td>
@@ -597,27 +634,29 @@ export default function LoansPage() {
       {/* CREATE LOAN MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto no-print">
-          <div className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl py-8 px-6 relative my-16 max-h-[85vh] overflow-y-auto">
+          <div className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl p-6 md:p-8 relative my-4 max-h-[90vh] md:max-h-[85vh] flex flex-col">
             <button 
               onClick={() => {
                 setIsModalOpen(false)
               }}
-              className="absolute top-4 right-4 p-1.5 bg-secondary hover:bg-muted text-muted-foreground hover:text-white rounded-lg transition-colors cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 bg-secondary hover:bg-muted text-muted-foreground hover:text-white rounded-lg transition-colors cursor-pointer z-10"
             >
               <X className="h-5 w-5" />
             </button>
 
-            <h3 className="text-xl font-bold text-white mb-2">Crear Nuevo Préstamo</h3>
-            <p className="text-sm text-muted-foreground mb-6">Asigna un plan de financiamiento a un prestatario.</p>
+            <div className="shrink-0 mb-4 pr-8">
+              <h3 className="text-xl font-bold text-white">Crear Nuevo Préstamo</h3>
+              <p className="text-sm text-muted-foreground mt-1">Asigna un plan de financiamiento a un prestatario.</p>
+            </div>
 
             {modalError && (
-              <div className="mb-4 p-4 bg-danger-bg border border-danger-border text-danger text-sm rounded-xl flex gap-2">
+              <div className="mb-4 p-4 bg-danger-bg border border-danger-border text-danger text-sm rounded-xl flex gap-2 shrink-0">
                 <AlertTriangle className="h-5 w-5 shrink-0" />
                 <span>{modalError}</span>
               </div>
             )}
 
-            <form onSubmit={handleCreateLoan} className="space-y-4">
+            <form onSubmit={handleCreateLoan} className="space-y-4 overflow-y-auto flex-1 pr-1 scrollbar-thin">
               {/* Searchable Borrower Select */}
               <SearchableSelect
                 label="Cliente (Prestatario)"
@@ -721,7 +760,7 @@ export default function LoansPage() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    Primer Cobro (Fecha)
+                    Fecha del Primer Pago
                   </label>
                   <input
                     type="date"
@@ -730,6 +769,9 @@ export default function LoansPage() {
                     onChange={(e) => setStartDate(e.target.value)}
                     className="block w-full px-3 py-2 bg-muted border border-border rounded-xl text-white text-sm"
                   />
+                  <span className="text-[10px] text-muted-foreground mt-1 block">
+                    La primera cuota vencerá exactamente en esta fecha.
+                  </span>
                 </div>
               </div>
 
@@ -765,25 +807,25 @@ export default function LoansPage() {
       {/* AUTOMATIC PRINTABLE PAGARÉ MODAL */}
       {printLoanId && printLoan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 overflow-y-auto print:bg-white print:p-0">
-          <div className="bg-card border border-border w-full max-w-2xl rounded-2xl shadow-2xl p-8 relative print:border-none print:shadow-none print:bg-white print:text-black print:max-w-none print:p-0 my-8">
+          <div className="bg-card border border-border w-full max-w-2xl rounded-2xl shadow-2xl p-6 md:p-8 relative print:border-none print:shadow-none print:bg-white print:text-black print:max-w-none print:p-0 my-4 md:my-8 flex flex-col max-h-[90vh] md:max-h-[85vh]">
             
             {/* Control Panel (Hidden during printing) */}
-            <div className="flex justify-between items-center mb-6 border-b border-border pb-4 no-print">
+            <div className="flex justify-between items-center mb-4 border-b border-border pb-4 no-print shrink-0">
               <div className="flex items-center gap-2">
-                <FileText className="h-6 w-6 text-primary" />
-                <h3 className="text-lg font-bold text-white">Impresión del Pagaré</h3>
+                <FileText className="h-5 w-5 text-primary" />
+                <h3 className="text-base md:text-lg font-bold text-white">Impresión del Pagaré</h3>
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => window.print()}
-                  className="py-2 px-4 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl cursor-pointer shadow-md flex items-center gap-1"
+                  className="py-1.5 px-3 md:py-2 md:px-4 bg-primary hover:bg-primary-hover text-white text-[11px] md:text-xs font-bold rounded-xl cursor-pointer shadow-md flex items-center gap-1"
                 >
                   <Printer className="h-3.5 w-3.5" />
-                  Imprimir Documento
+                  Imprimir
                 </button>
                 <button
                   onClick={() => setPrintLoanId(null)}
-                  className="py-2 px-4 bg-secondary hover:bg-muted text-white text-xs font-bold rounded-xl border border-border cursor-pointer"
+                  className="py-1.5 px-3 md:py-2 md:px-4 bg-secondary hover:bg-muted text-white text-[11px] md:text-xs font-bold rounded-xl border border-border cursor-pointer"
                 >
                   Cerrar
                 </button>
@@ -791,23 +833,23 @@ export default function LoansPage() {
             </div>
 
             {/* Legal Document Container */}
-            <div className="space-y-6 text-xs text-muted-foreground leading-relaxed print:text-black print:text-[11px] print:leading-relaxed bg-black/10 p-6 rounded-xl border border-border/30 print:border-none print:bg-transparent print:p-0">
+            <div className="space-y-4 md:space-y-6 text-xs text-muted-foreground leading-relaxed print:text-black print:text-[11px] print:leading-relaxed bg-black/10 p-4 md:p-6 rounded-xl border border-border/30 print:border-none print:bg-transparent print:p-0 overflow-y-auto flex-1 pr-1.5 md:pr-2 print:overflow-visible print:pr-0 scrollbar-thin">
               
               {/* Header Title / Money amount */}
-              <div className="flex justify-between items-start border-b border-border/60 pb-4 print:border-black gap-4">
+              <div className="flex justify-between items-start border-b border-border/60 pb-3 print:border-black gap-4">
                 <div>
-                  <h4 className="text-xl font-black text-white print:text-black tracking-tight">PAGARÉ</h4>
+                  <h4 className="text-lg md:text-xl font-black text-white print:text-black tracking-tight">PAGARÉ</h4>
                   <span className="text-[10px] text-muted-foreground print:text-black">CONTRATO DE CRÉDITO # {printLoan.id.slice(0,8).toUpperCase()}</span>
                   
                   {printLoan.client.qr_code_identifier && (
-                    <div className="mt-3 flex items-center gap-2.5 bg-secondary/35 border border-border/40 p-1.5 rounded-lg w-fit print:border-none print:bg-transparent print:p-0">
+                    <div className="mt-2.5 flex items-center gap-2 bg-secondary/35 border border-border/40 p-1 rounded-lg w-fit print:border-none print:bg-transparent print:p-0">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img 
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&color=0f172a&data=${printLoan.client.qr_code_identifier}`}
                         alt="QR Code"
-                        className="w-10 h-10 print:w-12 print:h-12 bg-white p-0.5 rounded border border-gray-150 shrink-0"
+                        className="w-8 h-8 md:w-10 md:h-10 print:w-12 print:h-12 bg-white p-0.5 rounded border border-gray-150 shrink-0"
                       />
-                      <div className="text-[9px] font-mono leading-tight print:text-black">
+                      <div className="text-[8px] md:text-[9px] font-mono leading-tight print:text-black">
                         <p className="font-bold">FICHADO QR</p>
                         <p className="text-muted-foreground print:text-black mt-0.5">{printLoan.client.qr_code_identifier}</p>
                       </div>
@@ -815,7 +857,7 @@ export default function LoansPage() {
                   )}
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-black text-white print:text-black bg-primary/10 border border-primary/20 px-3 py-1 rounded-lg print:border-none print:bg-transparent print:p-0">
+                  <p className="text-xs md:text-sm font-black text-white print:text-black bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-lg print:border-none print:bg-transparent print:p-0">
                     BUENO POR: ${Number(printLoan.total_to_pay).toLocaleString(undefined, { minimumFractionDigits: 2 })} MXN
                   </p>
                   <span className="text-[9px] block text-muted-foreground mt-1 print:text-black">
@@ -825,30 +867,30 @@ export default function LoansPage() {
               </div>
 
               {/* Legal Text Body */}
-              <p className="text-white/80 text-justify leading-relaxed print:text-black">
+              <p className="text-white/80 text-justify leading-relaxed print:text-black text-[11px] md:text-xs">
                 Por medio de este pagaré, el suscrito <strong className="text-white print:text-black">{printLoan.client.first_name} {printLoan.client.last_name}</strong> prometo y me obligo a pagar incondicionalmente por este Pagaré a la orden de <strong className="text-white print:text-black">{tenantName}</strong>, en su domicilio, la cantidad total de <strong className="text-white print:text-black">${Number(printLoan.total_to_pay).toLocaleString(undefined, { minimumFractionDigits: 2 })} MXN</strong> (con principal de ${Number(printLoan.principal_amount).toLocaleString()} MXN más cargos de financiamiento acordados).
               </p>
               
-              <p className="text-white/80 text-justify leading-relaxed print:text-black">
-                Dicha cantidad se liquidará mediante <strong className="text-white print:text-black">{printLoan.term_weeks} pagos semanales obligatorios</strong> de <strong className="text-white print:text-black">${Number(printLoan.total_to_pay / printLoan.term_weeks).toFixed(2)} MXN</strong> cada uno, comenzando a amortizar el día <strong className="text-white print:text-black">{new Date(printLoan.start_date).toLocaleDateString()}</strong> y venciendo en su totalidad a más tardar el día <strong className="text-white print:text-black">{new Date(printLoan.end_date).toLocaleDateString()}</strong>. La falta de pago oportuno de cualquiera de las cuotas devengará un interés moratorio del cobro fijado en las políticas vigentes de la institución.
+              <p className="text-white/80 text-justify leading-relaxed print:text-black text-[11px] md:text-xs">
+                Dicha cantidad se liquidará mediante <strong className="text-white print:text-black">{printLoan.term_weeks} pagos semanales obligatorios</strong> de <strong className="text-white print:text-black">${Number(printLoan.total_to_pay / printLoan.term_weeks).toFixed(2)} MXN</strong> cada uno, comenzando a amortizar el día <strong className="text-white print:text-black">{getFirstPaymentDateString(printLoan.start_date)}</strong> y venciendo en su totalidad a más tardar el día <strong className="text-white print:text-black">{formatLocalDateString(printLoan.end_date)}</strong>. La falta de pago oportuno de cualquiera de las cuotas devengará un interés moratorio del cobro fijado en las políticas vigentes de la institución.
               </p>
 
               {/* Signatures & Co-deudor layout */}
-              <div className="grid grid-cols-2 gap-8 pt-6 border-t border-border/40 print:border-black">
+              <div className="grid grid-cols-2 gap-4 md:gap-8 pt-4 border-t border-border/40 print:border-black">
                 
                 {/* Borrower details & signature line */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <h5 className="font-bold text-white print:text-black uppercase text-[10px]">Deudor Principal</h5>
                   <div className="text-[10px] space-y-1">
                     <p><strong className="text-white print:text-black">Nombre:</strong> {printLoan.client.first_name} {printLoan.client.last_name}</p>
                     <p><strong className="text-white print:text-black">Dirección:</strong> {printLoan.client.address}</p>
                   </div>
-                  <div className="h-16 border-b border-dashed border-border/50 print:border-black" />
+                  <div className="h-12 md:h-16 border-b border-dashed border-border/50 print:border-black" />
                   <p className="text-center text-[9px] text-muted-foreground/60 print:text-black">Firma del Prestatario</p>
                 </div>
 
                 {/* Co-deudor details & signature line */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <h5 className="font-bold text-white print:text-black uppercase text-[10px]">Aval (Co-deudor Solidario)</h5>
                   {printLoan.aval ? (
                     <>
@@ -856,11 +898,11 @@ export default function LoansPage() {
                         <p><strong className="text-white print:text-black">Nombre:</strong> {printLoan.aval.first_name} {printLoan.aval.last_name}</p>
                         <p><strong className="text-white print:text-black">Dirección:</strong> {printLoan.aval.address}</p>
                       </div>
-                      <div className="h-16 border-b border-dashed border-border/50 print:border-black" />
+                      <div className="h-12 md:h-16 border-b border-dashed border-border/50 print:border-black" />
                       <p className="text-center text-[9px] text-muted-foreground/60 print:text-black">Firma del Aval</p>
                     </>
                   ) : (
-                    <div className="h-full flex items-center justify-center border border-dashed border-border/40 rounded-xl p-4 text-[10px] italic">
+                    <div className="h-full min-h-[110px] flex items-center justify-center border border-dashed border-border/40 rounded-xl p-4 text-[10px] italic">
                       Sin Aval Solidario Registrado
                     </div>
                   )}

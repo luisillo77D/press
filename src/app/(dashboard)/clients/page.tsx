@@ -583,21 +583,23 @@ export default function ClientsPage() {
       {/* DOCUMENT VIEWER MODAL */}
       {selectedClient && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-card border border-border w-full max-w-2xl rounded-2xl shadow-2xl p-6 relative">
+          <div className="bg-card border border-border w-full max-w-2xl rounded-2xl shadow-2xl p-6 relative max-h-[90vh] md:max-h-[85vh] flex flex-col">
             <button 
               onClick={() => setSelectedClient(null)}
-              className="absolute top-4 right-4 p-1.5 bg-secondary hover:bg-muted text-muted-foreground hover:text-white rounded-lg transition-colors cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 bg-secondary hover:bg-muted text-muted-foreground hover:text-white rounded-lg transition-colors cursor-pointer z-10"
             >
               <X className="h-5 w-5" />
             </button>
 
-            <h3 className="text-xl font-bold text-white mb-1">
-              Documentación de {selectedClient.first_name} {selectedClient.last_name}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-6">Expediente digital del cliente.</p>
+            <div className="shrink-0 mb-4 pr-8">
+              <h3 className="text-xl font-bold text-white mb-1">
+                Documentación de {selectedClient.first_name} {selectedClient.last_name}
+              </h3>
+              <p className="text-sm text-muted-foreground">Expediente digital del cliente.</p>
+            </div>
 
             {loadingDocs ? (
-              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-4">
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-4 shrink-0">
                 <svg className="animate-spin h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -605,12 +607,12 @@ export default function ClientsPage() {
                 <span className="text-sm">Generando accesos seguros a documentos...</span>
               </div>
             ) : Object.keys(signedUrls).length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
+              <div className="p-8 text-center text-muted-foreground shrink-0">
                 <AlertCircle className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
                 <p className="text-sm">Este cliente no cuenta con ningún archivo digitalizado cargado aún.</p>
               </div>
             ) : (
-              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+              <div className="space-y-6 overflow-y-auto flex-1 pr-2 scrollbar-thin">
                 {Object.entries(signedUrls).map(([key, url]) => (
                   <div key={key} className="border border-border rounded-xl p-4 bg-secondary">
                     <h4 className="text-xs font-semibold text-white uppercase mb-3 flex items-center justify-between">

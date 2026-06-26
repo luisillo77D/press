@@ -158,6 +158,17 @@ export default async function DashboardLayout({
               <UserIcon className="h-4 w-4 text-primary shrink-0" />
               <span className="truncate max-w-[100px] sm:max-w-none">{profile?.full_name || user.email}</span>
             </div>
+
+            {/* Logout button for mobile devices */}
+            <form action={handleSignOut} className="md:hidden">
+              <button
+                type="submit"
+                className="flex items-center justify-center p-2 text-danger hover:bg-danger-bg hover:border-danger-border border border-transparent rounded-lg transition-all cursor-pointer"
+                title="Cerrar Sesión"
+              >
+                <LogOut className="h-4.5 w-4.5" />
+              </button>
+            </form>
           </div>
         </header>
 
