@@ -16,7 +16,8 @@ import {
   ArrowRight,
   TrendingUp,
   Percent,
-  Printer
+  Printer,
+  Trash2
 } from 'lucide-react'
 
 interface Loan {
@@ -172,6 +173,7 @@ export default function LoansPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [tenantName, setTenantName] = useState('el Prestamista')
+  const [isGlobalAdmin, setIsGlobalAdmin] = useState(false)
 
   // New Loan Form States
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -201,14 +203,17 @@ export default function LoansPage() {
     setLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user && user.app_metadata?.tenant_id) {
-        const { data: tenant } = await supabase
-          .from('tenants')
-          .select('name')
-          .eq('id', user.app_metadata.tenant_id)
-          .single()
-        if (tenant) {
-          setTenantName(tenant.name)
+      if (user) {
+        setIsGlobalAdmin(user.app_metadata?.is_global_admin === true)
+        if (user.app_metadata?.tenant_id) {
+          const { data: tenant } = await supabase
+            .from('tenants')
+            .select('name')
+            .eq('id', user.app_metadata.tenant_id)
+            .single()
+          if (tenant) {
+            setTenantName(tenant.name)
+          }
         }
       }
 
@@ -243,6 +248,32 @@ export default function LoansPage() {
   useEffect(() => {
     fetchInitialData()
   }, [fetchInitialData])
+
+  const handleDeleteLoan = async (loanId: string) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este préstamo? Esta acción eliminará permanentemente el contrato de préstamo, todas sus cuotas y los pagos asociados.')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('loans')
+        .delete()
+        .eq('id', loanId)
+
+      if (error) throw error
+
+      // Refresh list
+      fetchInitialData()
+      
+      // Close details if active
+      if (activeLoanId === loanId) {
+        setActiveLoanId(null)
+      }
+    } catch (err: any) {
+      console.error(err)
+      alert(err.message || 'Error al eliminar el préstamo.')
+    }
+  }
 
   // Recalculate interest and total when principal or rate change
   // BUT allow manual override of totalToPay and interestAmount
@@ -473,16 +504,31 @@ export default function LoansPage() {
                       <p className="text-xs text-white font-medium">{loan.term_weeks} pagos semanales</p>
                     </div>
                     
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPrintLoanId(loan.id);
-                      }}
-                      className="flex items-center gap-1.5 py-2 px-3 bg-secondary hover:bg-muted text-xs font-semibold text-white rounded-lg border border-border transition-colors cursor-pointer shrink-0"
-                    >
-                      <Printer className="h-4.5 w-4.5 text-primary" />
-                      Ver Pagaré
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPrintLoanId(loan.id);
+                        }}
+                        className="flex items-center gap-1.5 py-2 px-3 bg-secondary hover:bg-muted text-xs font-semibold text-white rounded-lg border border-border transition-colors cursor-pointer shrink-0"
+                      >
+                        <Printer className="h-4.5 w-4.5 text-primary" />
+                        Ver Pagaré
+                      </button>
+
+                      {isGlobalAdmin && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteLoan(loan.id);
+                          }}
+                          className="flex items-center gap-1.5 py-2 px-2.5 bg-danger-bg hover:bg-danger text-danger hover:text-white text-xs font-semibold rounded-lg border border-danger-border transition-colors cursor-pointer shrink-0"
+                          title="Eliminar préstamo (Superusuario)"
+                        >
+                          <Trash2 className="h-4.5 w-4.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
