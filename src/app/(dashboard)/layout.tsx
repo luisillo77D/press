@@ -14,6 +14,7 @@ import {
   Shield
 } from 'lucide-react'
 import { handleSignOut } from './actions'
+import MobileNav from '@/components/mobile-nav'
 
 interface SidebarLinkProps {
   href: string
@@ -144,27 +145,30 @@ export default async function DashboardLayout({
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Navbar */}
-        <header className="h-16 border-b border-border bg-card/50 backdrop-blur-md flex items-center justify-between px-6 z-10 no-print">
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-semibold text-white px-3 py-1.5 rounded-lg bg-secondary border border-border">
+        <header className="h-16 border-b border-border bg-card/50 backdrop-blur-md flex items-center justify-between px-6 z-10 no-print gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <span className="text-sm font-semibold text-white px-3 py-1.5 rounded-lg bg-secondary border border-border truncate">
               {tenantName}
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 min-w-0 shrink-0">
             {/* Display profile role on desktop */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <UserIcon className="h-4 w-4 text-primary" />
-              <span>{profile?.full_name || user.email}</span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
+              <UserIcon className="h-4 w-4 text-primary shrink-0" />
+              <span className="truncate max-w-[100px] sm:max-w-none">{profile?.full_name || user.email}</span>
             </div>
           </div>
         </header>
 
         {/* Scrollable Viewport */}
-        <main className="flex-1 overflow-y-auto bg-background p-6">
+        <main className="flex-1 overflow-y-auto bg-background p-6 pb-24 md:pb-6">
           {children}
         </main>
       </div>
+
+      {/* Mobile Navigation Bottom Bar */}
+      <MobileNav isGlobalAdmin={isGlobalAdmin} />
     </div>
   )
 }
