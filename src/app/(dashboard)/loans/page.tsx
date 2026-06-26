@@ -87,6 +87,17 @@ export default function LoansPage() {
   // Print Pagaré State
   const [printLoanId, setPrintLoanId] = useState<string | null>(null)
 
+  // Borrower and Aval Modal Filter Search States
+  const [borrowerSearch, setBorrowerSearch] = useState('')
+  const [avalSearch, setAvalSearch] = useState('')
+
+  const filteredBorrowers = clients.filter(c => 
+    `${c.first_name} ${c.last_name}`.toLowerCase().includes(borrowerSearch.toLowerCase())
+  )
+  const filteredAvals = clients.filter(c => 
+    `${c.first_name} ${c.last_name}`.toLowerCase().includes(avalSearch.toLowerCase())
+  )
+
   const supabase = createClient()
 
   // Fetch loans, clients, and tenant name
@@ -205,6 +216,8 @@ export default function LoansPage() {
       setIsModalOpen(false)
       setSelectedClientId('')
       setSelectedAvalId('')
+      setBorrowerSearch('')
+      setAvalSearch('')
       setPrincipal(1000)
       setInterestRate(20)
       setTermWeeks(15)
@@ -443,9 +456,13 @@ export default function LoansPage() {
       {/* CREATE LOAN MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto no-print">
-          <div className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl p-6 relative my-8">
+          <div className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl py-8 px-6 relative my-16 max-h-[85vh] overflow-y-auto">
             <button 
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => {
+                setIsModalOpen(false)
+                setBorrowerSearch('')
+                setAvalSearch('')
+              }}
               className="absolute top-4 right-4 p-1.5 bg-secondary hover:bg-muted text-muted-foreground hover:text-white rounded-lg transition-colors cursor-pointer"
             >
               <X className="h-5 w-5" />
@@ -468,6 +485,13 @@ export default function LoansPage() {
                   <User className="h-3 w-3" />
                   Cliente (Prestatario)
                 </label>
+                <input
+                  type="text"
+                  placeholder="Filtrar por nombre del cliente..."
+                  value={borrowerSearch}
+                  onChange={(e) => setBorrowerSearch(e.target.value)}
+                  className="block w-full px-3 py-1.5 bg-muted border border-border rounded-xl text-white text-xs focus:outline-none focus:border-primary placeholder-muted-foreground"
+                />
                 <select
                   required
                   value={selectedClientId}
@@ -475,7 +499,7 @@ export default function LoansPage() {
                   className="block w-full px-3 py-2 bg-muted border border-border rounded-xl text-white focus:outline-none focus:border-primary text-sm"
                 >
                   <option value="">-- Seleccionar Cliente --</option>
-                  {clients.map(c => (
+                  {filteredBorrowers.map(c => (
                     <option key={c.id} value={c.id}>{c.last_name}, {c.first_name}</option>
                   ))}
                 </select>
@@ -487,13 +511,20 @@ export default function LoansPage() {
                   <User className="h-3 w-3 text-primary" />
                   Co-deudor / Aval
                 </label>
+                <input
+                  type="text"
+                  placeholder="Filtrar por nombre del aval..."
+                  value={avalSearch}
+                  onChange={(e) => setAvalSearch(e.target.value)}
+                  className="block w-full px-3 py-1.5 bg-muted border border-border rounded-xl text-white text-xs focus:outline-none focus:border-primary placeholder-muted-foreground"
+                />
                 <select
                   value={selectedAvalId}
                   onChange={(e) => setSelectedAvalId(e.target.value)}
                   className="block w-full px-3 py-2 bg-muted border border-border rounded-xl text-white focus:outline-none focus:border-primary text-sm"
                 >
                   <option value="">-- Sin Aval (No obligatorio) --</option>
-                  {clients.map(c => (
+                  {filteredAvals.map(c => (
                     <option key={c.id} value={c.id}>{c.last_name}, {c.first_name}</option>
                   ))}
                 </select>
