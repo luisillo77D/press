@@ -56,6 +56,7 @@ export default function ClientsPage() {
 
   // View client details state
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [qrModalClient, setQrModalClient] = useState<Client | null>(null)
   const [signedUrls, setSignedUrls] = useState<{ [key: string]: string }>({})
   const [loadingDocs, setLoadingDocs] = useState(false)
 
@@ -336,10 +337,14 @@ export default function ClientsPage() {
                     <h3 className="text-lg font-bold text-white">
                       {client.first_name} {client.last_name}
                     </h3>
-                    <div className="flex items-center gap-1.5 mt-1 px-2.5 py-0.5 rounded-full bg-secondary border border-border w-fit text-[10px] font-semibold text-primary">
+                    <button
+                      onClick={() => setQrModalClient(client)}
+                      className="flex items-center gap-1.5 mt-1 px-2.5 py-0.5 rounded-full bg-secondary hover:bg-muted border border-border w-fit text-[10px] font-semibold text-primary cursor-pointer transition-colors"
+                      title="Ver Tarjeta de Pago QR"
+                    >
                       <QrCode className="h-3 w-3" />
                       {client.qr_code_identifier || 'Sin código'}
-                    </div>
+                    </button>
                   </div>
                   
                   <div className="flex items-center gap-1.5">
@@ -640,6 +645,41 @@ export default function ClientsPage() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* QR CODE MODAL */}
+      {qrModalClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border w-full max-w-sm rounded-2xl shadow-2xl p-6 relative text-center">
+            <button 
+              onClick={() => setQrModalClient(null)}
+              className="absolute top-4 right-4 p-1.5 bg-secondary hover:bg-muted text-muted-foreground hover:text-white rounded-lg transition-colors cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <h3 className="text-xl font-bold text-white mb-1">Tarjeta de Pago QR</h3>
+            <p className="text-xs text-muted-foreground mb-6">Muestra o imprime este código para cobros rápidos.</p>
+
+            {/* QR Card Frame */}
+            <div className="bg-white p-5 rounded-2xl w-fit mx-auto border border-gray-200 shadow-inner flex flex-col items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=0f172a&data=${qrModalClient.qr_code_identifier}`}
+                alt={`QR ${qrModalClient.qr_code_identifier}`}
+                className="w-44 h-44 bg-white"
+              />
+              <span className="text-slate-900 font-mono font-bold text-sm mt-3 tracking-wider">
+                {qrModalClient.qr_code_identifier}
+              </span>
+            </div>
+
+            <div className="mt-6 text-xs text-muted-foreground">
+              <p className="font-bold text-white text-sm mb-1">{qrModalClient.first_name} {qrModalClient.last_name}</p>
+              <p>Escanea esta tarjeta en la pantalla de Cobro Rápido para registrar abonos.</p>
+            </div>
           </div>
         </div>
       )}

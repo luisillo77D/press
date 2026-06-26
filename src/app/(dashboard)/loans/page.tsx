@@ -35,6 +35,7 @@ interface Loan {
     first_name: string
     last_name: string
     address: string
+    qr_code_identifier: string
   }
   aval?: {
     first_name: string
@@ -222,7 +223,7 @@ export default function LoansPage() {
         .from('loans')
         .select(`
           *,
-          client:client_id(first_name, last_name, address),
+          client:client_id(first_name, last_name, address, qr_code_identifier),
           aval:aval_id(first_name, last_name, address)
         `)
         .order('created_at', { ascending: false })
@@ -793,12 +794,27 @@ export default function LoansPage() {
             <div className="space-y-6 text-xs text-muted-foreground leading-relaxed print:text-black print:text-[11px] print:leading-relaxed bg-black/10 p-6 rounded-xl border border-border/30 print:border-none print:bg-transparent print:p-0">
               
               {/* Header Title / Money amount */}
-              <div className="flex justify-between items-start border-b border-border/60 pb-4 print:border-black">
+              <div className="flex justify-between items-start border-b border-border/60 pb-4 print:border-black gap-4">
                 <div>
                   <h4 className="text-xl font-black text-white print:text-black tracking-tight">PAGARÉ</h4>
                   <span className="text-[10px] text-muted-foreground print:text-black">CONTRATO DE CRÉDITO # {printLoan.id.slice(0,8).toUpperCase()}</span>
+                  
+                  {printLoan.client.qr_code_identifier && (
+                    <div className="mt-3 flex items-center gap-2.5 bg-secondary/35 border border-border/40 p-1.5 rounded-lg w-fit print:border-none print:bg-transparent print:p-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&color=0f172a&data=${printLoan.client.qr_code_identifier}`}
+                        alt="QR Code"
+                        className="w-10 h-10 print:w-12 print:h-12 bg-white p-0.5 rounded border border-gray-150 shrink-0"
+                      />
+                      <div className="text-[9px] font-mono leading-tight print:text-black">
+                        <p className="font-bold">FICHADO QR</p>
+                        <p className="text-muted-foreground print:text-black mt-0.5">{printLoan.client.qr_code_identifier}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <p className="text-sm font-black text-white print:text-black bg-primary/10 border border-primary/20 px-3 py-1 rounded-lg print:border-none print:bg-transparent print:p-0">
                     BUENO POR: ${Number(printLoan.total_to_pay).toLocaleString(undefined, { minimumFractionDigits: 2 })} MXN
                   </p>
